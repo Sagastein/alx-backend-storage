@@ -1,31 +1,39 @@
 #!/usr/bin/env python3
 """
-provides some stats about Nginx logs stored in MongoDB
+Provide some stats about Nginx logs stored in MongoDB
+Database: logs, Collection: nginx, Display same as example
+first line: x logs, x number of documents in this collection
+second line: Methods
+5 lines with method = ["GET", "POST", "PUT", "PATCH", "DELETE"]
+one line with method=GET, path=/status
 """
 from pymongo import MongoClient
 
 
-if __name__ == "__main__":
+METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE"]
+
+
+def log_stats(mongo_collection, option=None):
     """
-    Ensure only executable if not imported
+    Prototype: def log_stats(mongo_collection, option=None):
+    Provide some stats about Nginx logs stored in MongoDB
     """
-    tab = " " * 4
-    client = MongoClient('mongodb://127.0.0.1:27017')
-    nginx_collection = client.logs.nginx
-    all_logs = list(nginx_collection.find())
-    log_count = nginx_collection.estimated_document_count()
-    print("{} logs".format(log_count))
+    items = {}
+    if option:
+        value = mongo_collection.count_documents(
+            {"method": {"$regex": option}})
+        print(f"\tmethod {option}: {value}")
+        return
+
+    result = mongo_collection.count_documents(items)
+    print(f"{result} logs")
     print("Methods:")
-    get_docs = nginx_collection.count_documents({"method": "GET"})
-    post_docs = nginx_collection.count_documents({"method": "POST"})
-    put_docs = nginx_collection.count_documents({"method": "PUT"})
-    patch_docs = nginx_collection.count_documents({"method": "PATCH"})
-    delete_docs = nginx_collection.count_documents({"method": "DELETE"})
-    get_status_docs = nginx_collection.count_documents({"method": "GET",
-                                                        "path": "/status"})
-    print("\tmethod GET: {}".format(get_docs).expandtabs(4))
-    print("\tmethod POST: {}".format(post_docs).expandtabs(4))
-    print("\tmethod PUT: {}".format(put_docs).expandtabs(4))
-    print("\tmethod PATCH: {}".format(patch_docs).expandtabs(4))
-    print("\tmethod DELETE: {}".format(delete_docs).expandtabs(4))
-    print("{} status check".format(get_status_docs))
+    for method in METHODS:
+        log_stats(nginx_collection, method)
+    status_check = mongo_collection.count_documents({"path": "/status"})
+    print(f"{status_check} status check")
+
+
+if __name__ == "__main__":
+    nginx_collection = MongoClient('mongodb://127.0.0.1:27017').logs.nginx
+    log_stats(nginx_collection)

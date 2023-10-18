@@ -1,42 +1,21 @@
-#!/usr/bin/env python3
-"""
-web
-"""
-from functools import wraps
-import redis
 import requests
-from typing import Callable
+from functools import lru_cache
+import time
 
-
-_redis = redis.Redis()
-
-
-def count_requests(method: Callable) -> Callable:
-    """
-    Counts the request for a specific get request
-    """
-    @wraps(method)
-    def wrapper(url):
-        """ Wrapper """
-        _redis.incr("count:{}".format(url))
-
-        cached_html = _redis.get("cached:{}".format(url))
-        if cached_html:
-            return cached_html.decode('utf-8')
-
-        html = method(url)
-        _redis.setex("cached:{}".format(url), 10, html)
-
-        return html
-
-    return wrapper
-
-
-@count_requests
+@lru_cache(maxsize=None)
 def get_page(url: str) -> str:
-    """
-    Obtain the HTML content of a particular URL and returns it
-    """
-    res = requests.get(url)
+    d
+    count_key = f"count:{url}"
+    count = cache.get(count_key, 0)
+    cache.set(count_key, count + 1, ex=10)
 
-    return res.text
+    
+    page_key = f"page:{url}"
+    page = cache.get(page_key)
+    if page is None:
+        time.sleep(2)  # Simulate a slow response
+        page = requests.get(url).text
+        cache.set(page_key, page, ex=10)
+
+    return page
+
